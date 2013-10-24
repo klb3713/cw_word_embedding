@@ -11,12 +11,17 @@ DATA_DIR = "/home/klb3713/workspace/cw_word_embedding/data/"
 ##floatX = config.floatX
 #floatX = 'float32'
 
+TRAIN_FILE = DATA_DIR + "text8"
+
+SAMPLE_FILE = DATA_DIR + "samples"
+
 # Should we induce an embedding for OOV words?
 INCLUDE_UNKNOWN_WORD = True
+UNKNOWN_WORD = "*UNKNOWN*"
+SYMBOL_WORD = "*SYMBOL*"
 
-RUN_NAME = "rcv1.case-intact"
 VOCABULARY_SIZE = 268810
-VOCABULARY = DATA_DIR + "allwords.vocabulary.txt"
+VOCABULARY_FILE = DATA_DIR + "vocabulary.pkl"
 
 # Use the log-bilinear model or not?
 # If True, we predict the Mnih log-bilinear model
@@ -83,5 +88,3 @@ EMBEDDING_LEARNING_RATE = 0.00000000034
 
 # Validate after this many examples
 VALIDATE_EVERY = 10000000
-
-VOCABULARY_IDMAP_FILE = DATA_DIR + "vocabulary.idmap"
