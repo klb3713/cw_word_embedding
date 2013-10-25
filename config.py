@@ -11,7 +11,7 @@ DATA_DIR = "/home/klb3713/workspace/cw_word_embedding/data/"
 ##floatX = config.floatX
 #floatX = 'float32'
 
-TRAIN_FILE = DATA_DIR + "text8"
+TRAIN_FILE = DATA_DIR + "0019857"
 
 SAMPLE_FILE = DATA_DIR + "samples"
 
@@ -22,11 +22,6 @@ SYMBOL_WORD = "*SYMBOL*"
 
 VOCABULARY_SIZE = 268810
 VOCABULARY_FILE = DATA_DIR + "vocabulary.pkl"
-
-# Use the log-bilinear model or not?
-# If True, we predict the Mnih log-bilinear model
-# If False, we predict the C&W language model.
-LOG_BILINEAR_MODEL = False
 
 # Number of examples per minibach
 MINIBATCH_SIZE = 100

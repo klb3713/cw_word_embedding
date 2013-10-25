@@ -77,3 +77,7 @@ def dump_vocabulary():
     with open(config.VOCABULARY_FILE, 'wb') as f:
         cPickle.dump(word_to_id, f)
         cPickle.dump(words, f)
+
+
+if __name__ == "__main__":
+    load_vocabulary()

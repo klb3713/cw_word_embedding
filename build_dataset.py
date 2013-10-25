@@ -9,12 +9,15 @@ import vocabulary
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-p_word = re.compile(r'\w+')
+p_word = re.compile(r'[a-zA-Z0-9]+')
 
 
 def getNormalWord(word):
-    if word.isalnum():
+    if word.isdigit():
+        return config.SYMBOL_WORD
+    elif word.isalnum():
         return word.lower()
+
     word = ''.join(p_word.findall(word))
     if word.isdigit():
         return config.SYMBOL_WORD
@@ -30,13 +33,15 @@ def build_vocabulary():
     with open(config.TRAIN_FILE, 'r') as f:
         for line in f:
             line = line.strip('\n')
-            word = line.split()
-            word = getNormalWord(word)
-            if word:
-                train_size += 1
-                vocabulary.add(word)
+            words = line.split()
+            for word in words:
+                word = getNormalWord(word)
+                if word:
+                    train_size += 1
+                    vocabulary.add(word)
 
-    print("VOCABULARY_SIZE: ", vocabulary.length())
+    print("TRAIN SIZE: %d" % train_size)
+    print("VOCABULARY SIZE: %d" % vocabulary.length())
     vocabulary.dump_vocabulary()
 
 def build_samples():
