@@ -11,14 +11,14 @@ word_to_id = {}
 words = []
 
 
-def add(word):
+def add(word, count=1):
     """
         Add word to vocabulary and return its id.
         return -1 if this word is exist.
     """
     if word not in word_to_id:
         word_to_id[word] = len(words)
-        words.append([word, 1])
+        words.append([word, count])
         return word_to_id[word]
     else:
         words[word_to_id[word]][1] += 1
@@ -67,17 +67,29 @@ def load_vocabulary():
         exit()
     print("Loading vocabulary from %s..." % config.VOCABULARY_FILE)
     with open(config.VOCABULARY_FILE, 'rb') as f:
-        word_to_id = cPickle.load(f)
         words = cPickle.load(f)
+    for id, word in enumerate(words):
+        word_to_id[word[0]] = id
 
 
 def dump_vocabulary():
     """ Write the word ID map, passed as a parameter. """
     print("Writing vocabulary to %s..." % config.VOCABULARY_FILE)
     with open(config.VOCABULARY_FILE, 'wb') as f:
-        cPickle.dump(word_to_id, f)
         cPickle.dump(words, f)
+
+
+def save_vocabulary():
+    with open(config.SAVE_VOCABULARY, 'w') as voc_file:
+        for word in words:
+            voc_file.write("%s %d\n" % (word[0], word[1]))
+
+
+def delete_word():
+    global words
+    words = filter(lambda x: x[1] > config.WORD_COUNT, words)
 
 
 if __name__ == "__main__":
     load_vocabulary()
+    save_vocabulary()

@@ -11,7 +11,7 @@ DATA_DIR = "/home/klb3713/workspace/cw_word_embedding/data/"
 ##floatX = config.floatX
 #floatX = 'float32'
 
-TRAIN_FILE = DATA_DIR + "0019857"
+TRAIN_FILE = DATA_DIR + "corpus"
 
 SAMPLE_FILE = DATA_DIR + "samples"
 
@@ -19,9 +19,12 @@ SAMPLE_FILE = DATA_DIR + "samples"
 INCLUDE_UNKNOWN_WORD = True
 UNKNOWN_WORD = "*UNKNOWN*"
 SYMBOL_WORD = "*SYMBOL*"
+PADDING_WORD = "*PADDING*"
 
 VOCABULARY_SIZE = 268810
 VOCABULARY_FILE = DATA_DIR + "vocabulary.pkl"
+SAVE_VOCABULARY = DATA_DIR + "vocabulary.txt"
+WORD_COUNT = 5
 
 # Number of examples per minibach
 MINIBATCH_SIZE = 100
