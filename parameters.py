@@ -23,17 +23,18 @@ class Parameters:
     @todo: Document these
     """
 
-    def __init__(self, window_size=config.WINDOW_SIZE, vocab_size=vocabulary.length(),
+    def __init__(self, window_size=config.WINDOW_SIZE,
                  embedding_size=config.EMBEDDING_SIZE, hidden_size=config.HIDDEN_SIZE):
         """
         Initialize L{Model} parameters.
         """
 
-        self.vocab_size = vocab_size
+        self.vocab_size = vocabulary.length()
         self.window_size = window_size
         self.embedding_size = embedding_size
         self.hidden_size = hidden_size
         self.output_size = 1
+        self.input_size = self.embedding_size * self.window_size
 
         numpy.random.seed()
         self.embeddings = numpy.asarray(

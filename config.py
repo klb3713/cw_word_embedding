@@ -21,7 +21,7 @@ UNKNOWN_WORD = "*UNKNOWN*"
 SYMBOL_WORD = "*SYMBOL*"
 PADDING_WORD = "*PADDING*"
 
-VOCABULARY_SIZE = 268810
+EPOCH = 20
 VOCABULARY_FILE = DATA_DIR + "vocabulary.pkl"
 SAVE_VOCABULARY = DATA_DIR + "vocabulary.txt"
 WORD_COUNT = 5
@@ -46,7 +46,6 @@ VALIDATION_EXAMPLES = 1000
 # This is a speed optimization.
 PERCENT_OF_NOISE_EXAMPLES_FOR_VALIDATION_LOGRANK = 0.01
 
-NGRAM_FOR_TRAINING_NOISE = 0
 
 #NGRAMS = {(1, 5000) = join(DATA_DIR, "1grams-wikitext-5000.json.gz"),
 #(1, 10000) = join(DATA_DIR, "1grams-wikitext-10000.json.gz"),
