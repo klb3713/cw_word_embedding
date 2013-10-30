@@ -43,8 +43,8 @@ class Parameters:
         if config.NORMALIZE_EMBEDDINGS:
             self.normalize(range(self.vocab_size))
 
-        self.hidden_weights = theano.shared(numpy.asarray(
-            random_weights(self.input_size, self.hidden_size, scale_by=config.SCALE_INITIAL_WEIGHTS_BY), dtype=floatX))
+        self.hidden_weights = theano.shared(numpy.asarray(numpy.ones((self.input_size, self.hidden_size)),
+                                                          dtype=floatX))
         self.output_weights = theano.shared(numpy.asarray(
             random_weights(self.hidden_size, self.output_size, scale_by=config.SCALE_INITIAL_WEIGHTS_BY), dtype=floatX))
         self.hidden_biases = theano.shared(numpy.asarray(numpy.zeros((self.hidden_size,)), dtype=floatX))

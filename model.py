@@ -87,23 +87,14 @@ class Model(object):
 
         unpenalized_loss = T.clip(1 - correct_score + noise_score, 0, 1e999)
         total_loss = T.sum(unpenalized_loss)
-        (dhidden_weights,
-         dhidden_biases,
-         doutput_weights,
-         doutput_biases) = T.grad(total_loss,
-                                  [self.parameters.hidden_weights,
-                                   self.parameters.hidden_biases,
-                                   self.parameters.output_weights,
-                                   self.parameters.output_biases])
+        (doutput_weights, doutput_biases) = T.grad(total_loss,
+                                  [self.parameters.output_weights, self.parameters.output_biases])
 
         dcorrect_inputs = T.grad(total_loss, correct_inputs)
         dnoise_inputs = T.grad(total_loss, noise_inputs)
 
-        para_gpara = zip((self.parameters.hidden_weights,
-                          self.parameters.hidden_biases,
-                          self.parameters.output_weights,
-                          self.parameters.output_biases),
-                         (dhidden_weights, dhidden_biases, doutput_weights, doutput_biases))
+        para_gpara = zip((self.parameters.output_weights, self.parameters.output_biases),
+                         (doutput_weights, doutput_biases))
         updates = [(p, p - learning_rate * gp) for p, gp in para_gpara]
 
         logger.info("About to compile train function...")
@@ -175,7 +166,8 @@ class Model(object):
                 logger.info(("After %d updates, pre-update train noise score %s" % (self.train_cnt, self.train_noise_score.verbose_string())))
 
 
-            embedding_learning_rate = config.EMBEDDING_LEARNING_RATE * weights[0]
+            # embedding_learning_rate = config.EMBEDDING_LEARNING_RATE * weights[0]
+            embedding_learning_rate = config.LEARNING_RATE * weights[0]
             if loss == 0:
                 for di in dcorrect_inputs + dnoise_inputs:
                     assert (di == 0).all()

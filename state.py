@@ -16,7 +16,7 @@ def creat_run_dir():
     Write the module values to 'LOGS/run_{date}/'
     """
 
-    run_dir = config.DATA_DIR + "logs/run_%s" % time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+    run_dir = os.path.join(config.DATA_DIR, "run_%s" % time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()))
     if not os.path.exists(run_dir):
         os.mkdir(run_dir)
 

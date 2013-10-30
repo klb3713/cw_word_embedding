@@ -15,7 +15,13 @@ import model
 
 logger = logging.getLogger(__name__)
 
+
 def train():
+    run_dir = state.creat_run_dir()
+    # logfile = os.path.join(run_dir, "log")
+    # logging.basicConfig(filename=logfile, filemode="w", level=logging.DEBUG)
+    logging.basicConfig(format='%(asctime)s : %(threadName)s : %(levelname)s : %(message)s', level=logging.INFO)
+
     logger.info("INITIALIZING...")
     cw_model = model.Model()
     cnt = 0
@@ -34,8 +40,8 @@ def train():
                 logger.info("FINISH TRAINED 100000 SAMPLES of epoch #%d." % epoch)
 
         # save embedding for every epoch
-        cw_model.save_word2vec_format(config.VECTOR_FILE + '_epoch%d.bin' % epoch, binary=True)
-        cw_model.save_word2vec_format(config.VECTOR_FILE + '_epoch%d.txt' % epoch, binary=False)
+        cw_model.save_word2vec_format(os.path.join(run_dir, config.VECTOR_FILE + '_epoch%d.bin' % epoch), binary=True)
+        cw_model.save_word2vec_format(os.path.join(run_dir, config.VECTOR_FILE + '_epoch%d.txt' % epoch), binary=False)
 
         logger.info("FINISH TRAIN EPOCH #%d" % epoch)
         train_mini_batchs = samples.TrainingMiniBatchStream()
@@ -43,8 +49,4 @@ def train():
 
 
 if __name__ == "__main__":
-    run_dir = state.creat_run_dir()
-    # logfile = os.path.join(run_dir, "log")
-    # logging.basicConfig(filename=logfile, filemode="w", level=logging.DEBUG)
-    logging.basicConfig(format='%(asctime)s : %(threadName)s : %(levelname)s : %(message)s', level=logging.INFO)
     train()
