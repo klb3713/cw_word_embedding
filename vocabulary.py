@@ -4,8 +4,10 @@ __author__ = 'klb3713'
 
 import os
 import cPickle
+import logging
 import config
 
+logger = logging.getLogger(__name__)
 
 word_to_id = {}
 words = []
@@ -56,6 +58,26 @@ def length():
     return len(words)
 
 
+def read_vocabulary():
+    """ Load the words and word_to_id. """
+
+    global word_to_id
+    global words
+
+    if not os.path.exists(config.VOCABULARY_FILE):
+        logger.info("Error: can't find vocabulary dump file '%s'!" % config.VOCABULARY_FILE)
+        exit()
+
+    logger.info("Loading vocabulary from %s..." % config.VOCABULARY_FILE)
+    with open(config.VOCABULARY_FILE, 'r') as f:
+        for line in f:
+            word, count = line.strip('\n').split()
+            words.append([word, int(count)])
+
+    for id, word in enumerate(words):
+        word_to_id[word[0]] = id
+
+
 def load_vocabulary():
     """ Load the words and word_to_id. """
 
@@ -63,9 +85,14 @@ def load_vocabulary():
     global words
 
     if not os.path.exists(config.VOCABULARY_FILE):
-        print("Error: can't find vocabulary dump file '%s'!" % config.VOCABULARY_FILE)
+        logger.info("Error: can't find vocabulary dump file '%s'!" % config.VOCABULARY_FILE)
         exit()
-    print("Loading vocabulary from %s..." % config.VOCABULARY_FILE)
+
+    if config.VOCABULARY_FILE.endswith('.txt'):
+        read_vocabulary()
+        return
+
+    logger.info("Loading vocabulary from %s..." % config.VOCABULARY_FILE)
     with open(config.VOCABULARY_FILE, 'rb') as f:
         words = cPickle.load(f)
     for id, word in enumerate(words):
@@ -74,7 +101,7 @@ def load_vocabulary():
 
 def dump_vocabulary():
     """ Write the word ID map, passed as a parameter. """
-    print("Writing vocabulary to %s..." % config.VOCABULARY_FILE)
+    logger.info("Writing vocabulary to %s..." % config.VOCABULARY_FILE)
     with open(config.VOCABULARY_FILE, 'wb') as f:
         cPickle.dump(words, f)
 

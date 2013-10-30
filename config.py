@@ -13,7 +13,9 @@ DATA_DIR = "/home/klb3713/workspace/cw_word_embedding/data/"
 
 TRAIN_FILE = DATA_DIR + "corpus"
 
-SAMPLE_FILE = DATA_DIR + "samples"
+# SAMPLE_FILE = DATA_DIR + "samples"
+SAMPLE_FILE = DATA_DIR + "text8_samples"
+
 
 # Should we induce an embedding for OOV words?
 INCLUDE_UNKNOWN_WORD = True
@@ -22,9 +24,12 @@ SYMBOL_WORD = "*SYMBOL*"
 PADDING_WORD = "*PADDING*"
 
 EPOCH = 20
-VOCABULARY_FILE = DATA_DIR + "vocabulary.pkl"
+VOCABULARY_FILE = DATA_DIR + "text8_voc.txt"
+# VOCABULARY_FILE = DATA_DIR + "vocabulary.pkl"
 SAVE_VOCABULARY = DATA_DIR + "vocabulary.txt"
 WORD_COUNT = 5
+
+VECTOR_FILE = DATA_DIR + "vector"
 
 # Number of examples per minibach
 MINIBATCH_SIZE = 100
@@ -55,7 +60,7 @@ PERCENT_OF_NOISE_EXAMPLES_FOR_VALIDATION_LOGRANK = 0.01
 TRAINING_NOISE_SMOOTHING_ADDITION = 0
 
 # Each embedded word representation has this width
-EMBEDDING_SIZE = 50
+EMBEDDING_SIZE = 100
 
 # Predict with a window of five words at a time
 WINDOW_SIZE = 5

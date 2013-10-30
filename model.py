@@ -16,6 +16,8 @@ from theano.sandbox.softsign import softsign
 from parameters import Parameters
 from movingaverage import MovingAverage
 
+logger = logging.getLogger(__name__)
+
 
 class Model(object):
     """
@@ -104,12 +106,12 @@ class Model(object):
                          (dhidden_weights, dhidden_biases, doutput_weights, doutput_biases))
         updates = [(p, p - learning_rate * gp) for p, gp in para_gpara]
 
-        print("About to compile train function...")
+        logger.info("About to compile train function...")
         train_function = theano.function([correct_inputs, noise_inputs, learning_rate],
                                          [dcorrect_inputs, dnoise_inputs, unpenalized_loss, correct_score, noise_score],
                                          mode=self.COMPILE_MODE,
                                          updates=updates)
-        print("Done constructing function for train")
+        logger.info("Done constructing function for train")
         return train_function
 
     def embeds(self, sequences):
@@ -165,12 +167,12 @@ class Model(object):
     
             self.train_cnt += 1
             if self.train_cnt % 100000 == 0:
-                logging.info(("After %d updates, pre-update train loss %s" % (self.train_cnt, self.train_loss.verbose_string())))
-                logging.info(("After %d updates, pre-update train error %s" % (self.train_cnt, self.train_err.verbose_string())))
-                logging.info(("After %d updates, pre-update train Pr(loss != 0) %s" % (self.train_cnt, self.train_lossnonzero.verbose_string())))
-                logging.info(("After %d updates, pre-update train squash(loss) %s" % (self.train_cnt, self.train_squash_loss.verbose_string())))
-                logging.info(("After %d updates, pre-update train correct score %s" % (self.train_cnt, self.train_correct_score.verbose_string())))
-                logging.info(("After %d updates, pre-update train noise score %s" % (self.train_cnt, self.train_noise_score.verbose_string())))
+                logger.info(("After %d updates, pre-update train loss %s" % (self.train_cnt, self.train_loss.verbose_string())))
+                logger.info(("After %d updates, pre-update train error %s" % (self.train_cnt, self.train_err.verbose_string())))
+                logger.info(("After %d updates, pre-update train Pr(loss != 0) %s" % (self.train_cnt, self.train_lossnonzero.verbose_string())))
+                logger.info(("After %d updates, pre-update train squash(loss) %s" % (self.train_cnt, self.train_squash_loss.verbose_string())))
+                logger.info(("After %d updates, pre-update train correct score %s" % (self.train_cnt, self.train_correct_score.verbose_string())))
+                logger.info(("After %d updates, pre-update train noise score %s" % (self.train_cnt, self.train_noise_score.verbose_string())))
 
 
             embedding_learning_rate = config.EMBEDDING_LEARNING_RATE * weights[0]
@@ -189,3 +191,23 @@ class Model(object):
 
         if len(to_normalize) > 0:
             self.parameters.normalize(to_normalize)
+
+    def save_word2vec_format(self, fname, binary=False):
+        """
+        Store the input-hidden weight matrix in the same format used by the original
+        C word2vec-tool, for compatibility.
+
+        """
+        logger.info("storing %sx%s projection weights into %s" % (self.parameters.vocab_size, self.parameters.embedding_size, fname))
+
+        with open(fname, 'wb') as fout:
+            fout.write("%s %s\n" % self.parameters.embeddings.shape)
+            # store in sorted order: most frequent words at the top
+            for word, count in sorted(vocabulary.words, key=lambda item: -item[1]):
+                # word = utils.to_utf8(word)  # always store in utf8
+                index = vocabulary.id(word)
+                row = self.parameters.embeddings[index]
+                if binary:
+                    fout.write("%s %s\n" % (word, row.tostring()))
+                else:
+                    fout.write("%s %s\n" % (word, ' '.join("%f" % val for val in row)))
