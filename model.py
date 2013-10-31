@@ -14,7 +14,6 @@ import vocabulary
 from theano import tensor as T
 from theano.sandbox.softsign import softsign
 from parameters import Parameters
-from movingaverage import MovingAverage
 
 logger = logging.getLogger(__name__)
 
@@ -30,31 +29,25 @@ class Model(object):
     def __init__(self):
         vocabulary.load_vocabulary()
         self.parameters = Parameters()
-        self.train_loss = MovingAverage()
-        self.train_err = MovingAverage()
-        self.train_lossnonzero = MovingAverage()
-        self.train_squash_loss = MovingAverage()
-        self.train_unpenalized_loss = MovingAverage()
-        self.train_l1penalty = MovingAverage()
-        self.train_unpenalized_lossnonzero = MovingAverage()
-        self.train_correct_score = MovingAverage()
-        self.train_noise_score = MovingAverage()
+        self.train_loss = 0
+        self.train_err = 0
+        self.train_lossnonzero = 0
         self.train_cnt = 0
         self.COMPILE_MODE = theano.compile.Mode('c|py', 'fast_run')
 
         self.train_function = self._get_train_function()
+
+    def reset(self):
+        self.train_loss = 0
+        self.train_err = 0
+        self.train_lossnonzero = 0
+        self.train_cnt = 0
 
     def __getstate__(self):
         return (self.parameters,
                 self.train_loss,
                 self.train_err,
                 self.train_lossnonzero,
-                self.train_squash_loss,
-                self.train_unpenalized_loss,
-                self.train_l1penalty,
-                self.train_unpenalized_lossnonzero,
-                self.train_correct_score,
-                self.train_noise_score,
                 self.train_cnt)
 
     def __setstate__(self, state):
@@ -62,12 +55,6 @@ class Model(object):
          self.train_loss,
          self.train_err,
          self.train_lossnonzero,
-         self.train_squash_loss,
-         self.train_unpenalized_loss,
-         self.train_l1penalty,
-         self.train_unpenalized_lossnonzero,
-         self.train_correct_score,
-         self.train_noise_score,
          self.train_cnt) = state
 
     def _get_train_function(self):
@@ -99,7 +86,7 @@ class Model(object):
 
         logger.info("About to compile train function...")
         train_function = theano.function([correct_inputs, noise_inputs, learning_rate],
-                                         [dcorrect_inputs, dnoise_inputs, unpenalized_loss, correct_score, noise_score],
+                                         [dcorrect_inputs, dnoise_inputs, total_loss, unpenalized_loss, correct_score, noise_score],
                                          mode=self.COMPILE_MODE,
                                          updates=updates)
         logger.info("Done constructing function for train")
@@ -115,7 +102,7 @@ class Model(object):
         for sequence in sequences:
             seq = [self.parameters.embeddings[s] for s in sequence]
             embs.append(numpy.concatenate(seq))
-        return numpy.array(embs)
+        return numpy.vstack(embs)
 
     def corrupt_examples(self, correct_sequences):
         noise_sequences = []
@@ -136,53 +123,25 @@ class Model(object):
         noise_sequences, weights = self.corrupt_examples(correct_sequences)
 
         r = self.train_function(self.embeds(correct_sequences), self.embeds(noise_sequences), learning_rate * weights[0])
-        (dcorrect_inputss, dnoise_inputss, losses, correct_scores, noise_scores) = r
+        (dcorrect_inputss, dnoise_inputss, total_loss, losses, correct_scores, noise_scores) = r
 
-        to_normalize = []
+        self.train_loss += total_loss
+        self.train_err += (correct_scores <= noise_scores).sum()
+        self.train_lossnonzero += (losses > 0).sum()
+
         for index in range(len(correct_sequences)):
-            (loss, correct_score, noise_score) = (losses[index], correct_scores[index], noise_scores[index])
-
             correct_sequence = correct_sequences[index]
             noise_sequence = noise_sequences[index]
 
             dcorrect_inputs = dcorrect_inputss[index].reshape((config.WINDOW_SIZE, config.EMBEDDING_SIZE))
             dnoise_inputs = dnoise_inputss[index].reshape((config.WINDOW_SIZE, config.EMBEDDING_SIZE))
 
-            self.train_loss.add(loss)
-            self.train_err.add(correct_score <= noise_score)
-            self.train_lossnonzero.add(loss > 0)
-            squash_loss = 1./(1.+math.exp(-loss))
-            self.train_squash_loss.add(squash_loss)
-            self.train_correct_score.add(correct_score)
-            self.train_noise_score.add(noise_score)
-    
-            self.train_cnt += 1
-            if self.train_cnt % 100000 == 0:
-                logger.info(("After %d updates, pre-update train loss %s" % (self.train_cnt, self.train_loss.verbose_string())))
-                logger.info(("After %d updates, pre-update train error %s" % (self.train_cnt, self.train_err.verbose_string())))
-                logger.info(("After %d updates, pre-update train Pr(loss != 0) %s" % (self.train_cnt, self.train_lossnonzero.verbose_string())))
-                logger.info(("After %d updates, pre-update train squash(loss) %s" % (self.train_cnt, self.train_squash_loss.verbose_string())))
-                logger.info(("After %d updates, pre-update train correct score %s" % (self.train_cnt, self.train_correct_score.verbose_string())))
-                logger.info(("After %d updates, pre-update train noise score %s" % (self.train_cnt, self.train_noise_score.verbose_string())))
-
-
             # embedding_learning_rate = config.EMBEDDING_LEARNING_RATE * weights[0]
-            embedding_learning_rate = config.LEARNING_RATE * weights[0]
-            if loss == 0:
-                for di in dcorrect_inputs + dnoise_inputs:
-                    assert (di == 0).all()
-            else:
-                for (i, di) in zip(correct_sequence, dcorrect_inputs):
-                    self.parameters.embeddings[i] -= 1.0 * embedding_learning_rate * di
-                    if config.NORMALIZE_EMBEDDINGS:
-                        to_normalize.add(i)
-                for (i, di) in zip(noise_sequence, dnoise_inputs):
-                    self.parameters.embeddings[i] -= 1.0 * embedding_learning_rate * di
-                    if config.NORMALIZE_EMBEDDINGS:
-                        to_normalize.add(i)
-
-        if len(to_normalize) > 0:
-            self.parameters.normalize(to_normalize)
+            embedding_learning_rate = config.LEARNING_RATE
+            for (i, di) in zip(correct_sequence, dcorrect_inputs):
+                self.parameters.embeddings[i] -= embedding_learning_rate * di
+            for (i, di) in zip(noise_sequence, dnoise_inputs):
+                self.parameters.embeddings[i] -= embedding_learning_rate * di
 
     def save_word2vec_format(self, fname, binary=False):
         """

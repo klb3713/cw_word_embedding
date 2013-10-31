@@ -37,9 +37,11 @@ class Parameters:
         self.input_size = self.embedding_size * self.window_size
 
         numpy.random.seed()
-        self.embeddings = numpy.asarray(
-            (numpy.random.rand(self.vocab_size, self.embedding_size) - 0.5) * 2 * config.INITIAL_EMBEDDING_RANGE,
-            dtype=floatX)
+        # self.embeddings = numpy.asarray(
+        #     (numpy.random.rand(self.vocab_size, self.embedding_size) - 0.5) * 2 * config.INITIAL_EMBEDDING_RANGE,
+        #     dtype=floatX)
+        self.embeddings = numpy.asarray((numpy.random.rand(self.vocab_size, self.embedding_size) - 0.5) * 2,
+                                        dtype=floatX)
         if config.NORMALIZE_EMBEDDINGS:
             self.normalize(range(self.vocab_size))
 
