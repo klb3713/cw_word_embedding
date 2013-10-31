@@ -4,7 +4,7 @@ __author__ = 'klb3713'
 
 # Not actually used directly, just for convenience
 
-DATA_DIR = "/home/klb3713/workspace/cw_word_embedding/data/"
+DATA_DIR = "/home/vida/workspace/cw_word_embedding/data/"
 
 ## 32-bit for the GPU
 ##import theano.config as config
@@ -32,7 +32,7 @@ WORD_COUNT = 5
 VECTOR_FILE = "vector"
 
 # Number of examples per minibach
-MINIBATCH_SIZE = 100
+MINIBATCH_SIZE = 10000
 
 # Randomly initialize embeddings uniformly in the range [-this value, +this value]
 INITIAL_EMBEDDING_RANGE = 0.01
