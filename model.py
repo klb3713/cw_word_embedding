@@ -86,7 +86,9 @@ class Model(object):
 
         logger.info("About to compile train function...")
         train_function = theano.function([correct_inputs, noise_inputs, learning_rate],
-                                         [dcorrect_inputs, dnoise_inputs, total_loss, unpenalized_loss, correct_score, noise_score],
+                                         [theano.Out(theano.sandbox.cuda.basic_ops.gpu_from_host(para), borrow=True)
+                                          for para in [dcorrect_inputs, dnoise_inputs, total_loss,
+                                                       unpenalized_loss, correct_score, noise_score]],
                                          mode=self.COMPILE_MODE,
                                          updates=updates)
         logger.info("Done constructing function for train")
@@ -123,7 +125,8 @@ class Model(object):
         noise_sequences, weights = self.corrupt_examples(correct_sequences)
 
         r = self.train_function(self.embeds(correct_sequences), self.embeds(noise_sequences), learning_rate * weights[0])
-        (dcorrect_inputss, dnoise_inputss, total_loss, losses, correct_scores, noise_scores) = r
+        (dcorrect_inputss, dnoise_inputss, total_loss, losses, correct_scores, noise_scores) = \
+            [numpy.asarray(output) for output in r]
 
         self.train_loss += total_loss
         self.train_err += (correct_scores <= noise_scores).sum()
