@@ -43,7 +43,7 @@ def train(debug=False):
         cw_model.save_word2vec_format(os.path.join(run_dir, config.VECTOR_FILE + '_epoch%d.txt' % epoch), binary=False)
 
         logger.info("After #%d epoch updates, train loss: %f" % (epoch, cw_model.train_loss))
-        logger.info("After #%d epoch updates, train error: d" % (epoch, cw_model.train_err))
+        logger.info("After #%d epoch updates, train error: %d" % (epoch, cw_model.train_err))
         logger.info("After #%d epoch updates, train loss nonzero: %d" % (epoch, cw_model.train_lossnonzero))
         cw_model.reset()
         logger.info("FINISH TRAIN EPOCH #%d" % epoch)
@@ -53,4 +53,4 @@ def train(debug=False):
 
 
 if __name__ == "__main__":
-    train(debug=True)
+    train(debug=False)
