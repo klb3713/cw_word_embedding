@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 __author__ = 'klb3713'
 
-
+import ctrain
 import logging
 import copy
 import numpy
 import config
 import vocabulary
 from parameters import Parameters
+
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ class Model(object):
 
         loss = 1 - correct_score + noise_score
         if loss < 0:
-            return [0] * 5
+            return 0
 
         # gradients for correct sample
         c_dcost_dout = -1
@@ -157,16 +158,18 @@ class Model(object):
         return noise_sequences
 
     def train(self, correct_sequences):
+        # ctrain.train(self, correct_sequences)
+
         learning_rate = config.LEARNING_RATE
         for correct_sequence in correct_sequences:
             emb_correct = self.embed(correct_sequence)
             for noise_sequence in self.corrupt_examples(correct_sequence):
                 emb_noise = self.embed(noise_sequence)
+                # r = ctrain.train_sample_pair(self, emb_correct, emb_noise, learning_rate)
                 r = self.train_sample_pair(emb_correct, emb_noise, learning_rate)
-                (dcorrect_input, dnoise_input, loss, correct_score, noise_score) = r
-
-                if loss == 0:
+                if r == 0:
                     continue
+                (dcorrect_input, dnoise_input, loss, correct_score, noise_score) = r
 
                 self.train_loss += loss
                 self.train_err += 1 if correct_score <= noise_score else 0
