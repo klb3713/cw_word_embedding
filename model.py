@@ -2,17 +2,11 @@
 __author__ = 'klb3713'
 
 
-import math
 import logging
-import random
 import copy
 import numpy
-import theano
 import config
 import vocabulary
-
-from theano import tensor as T
-from theano.sandbox.softsign import softsign
 from parameters import Parameters
 
 logger = logging.getLogger(__name__)
@@ -33,9 +27,6 @@ class Model(object):
         self.train_err = 0
         self.train_lossnonzero = 0
         self.train_cnt = 0
-        self.COMPILE_MODE = theano.compile.Mode('c|py', 'fast_run')
-
-        self.train_function = self._get_train_function()
 
     def reset(self):
         self.train_loss = 0
@@ -57,91 +48,137 @@ class Model(object):
          self.train_lossnonzero,
          self.train_cnt) = state
 
-    def _get_train_function(self):
-        floatX = theano.config.floatX
-        correct_inputs = T.matrix(dtype=floatX)
+    def train_sample_pair(self, correct_inputs, noise_inputs, learning_rate):
+        correct_prehidden = numpy.dot(correct_inputs, self.parameters.hidden_weights) + self.parameters.hidden_biases
+        correct_hidden = []
+        for x in correct_prehidden[0]:
+            if x < -1:
+                correct_hidden.append(-1.)
+            elif x > 1:
+                correct_hidden.append(1.)
+            else:
+                correct_hidden.append(x)
+        correct_hidden = numpy.asarray(correct_hidden).reshape((1, self.parameters.hidden_size))
+        correct_score = numpy.dot(correct_hidden, self.parameters.output_weights) + self.parameters.output_biases
 
-        noise_inputs = T.matrix(dtype=floatX)
-        learning_rate = T.scalar(dtype=floatX)
+        noise_prehidden = numpy.dot(noise_inputs, self.parameters.hidden_weights) + self.parameters.hidden_biases
+        noise_hidden = []
+        for x in noise_prehidden[0]:
+            if x < -1:
+                noise_hidden.append(-1.)
+            elif x > 1:
+                noise_hidden.append(1.)
+            else:
+                noise_hidden.append(x)
+        noise_hidden = numpy.asarray(noise_hidden).reshape((1, self.parameters.hidden_size))
+        noise_score = numpy.dot(noise_hidden, self.parameters.output_weights) + self.parameters.output_biases
 
-        correct_prehidden = T.dot(correct_inputs, self.parameters.hidden_weights) + self.parameters.hidden_biases
-        hidden = softsign(correct_prehidden)
-        correct_score = T.dot(hidden, self.parameters.output_weights) + self.parameters.output_biases
+        loss = 1 - correct_score + noise_score
+        if loss < 0:
+            return [0] * 5
 
-        noise_prehidden = T.dot(noise_inputs, self.parameters.hidden_weights) + self.parameters.hidden_biases
-        hidden = softsign(noise_prehidden)
-        noise_score = T.dot(hidden, self.parameters.output_weights) + self.parameters.output_biases
+        # gradients for correct sample
+        c_dcost_dout = -1
+        c_doutput_weights = numpy.dot(correct_hidden.T, c_dcost_dout)
+        c_doutput_biases = c_dcost_dout
+        c_dcost_dhidden = numpy.dot(c_dcost_dout, self.parameters.output_weights.T)
 
-        unpenalized_loss = T.clip(1 - correct_score + noise_score, 0, 1e999)
-        total_loss = T.sum(unpenalized_loss)
-        (doutput_weights, doutput_biases) = T.grad(total_loss,
-                                  [self.parameters.output_weights, self.parameters.output_biases])
+        c_dcost_dinput = []
+        c_dcost_dhidden_v = c_dcost_dhidden.reshape((self.parameters.hidden_size,))
+        for i, x in enumerate(correct_prehidden[0]):
+            if x < -1 or x > 1:
+                c_dcost_dinput.append(0.)
+            else:
+                c_dcost_dinput.append(c_dcost_dhidden_v[i])
+        c_dcost_dinput = numpy.asarray(c_dcost_dinput).reshape((1, self.parameters.hidden_size))
 
-        dcorrect_inputs = T.grad(total_loss, correct_inputs)
-        dnoise_inputs = T.grad(total_loss, noise_inputs)
+        c_dhidden_weights = numpy.dot(correct_inputs.T, c_dcost_dinput)
+        c_dhidden_biases = c_dcost_dinput
+        c_dcost_lt = numpy.dot(c_dcost_dinput, self.parameters.hidden_weights.T)
 
-        para_gpara = zip((self.parameters.output_weights, self.parameters.output_biases),
-                         (doutput_weights, doutput_biases))
-        updates = [(p, p - learning_rate * gp) for p, gp in para_gpara]
+        c_dcost_lt = c_dcost_lt.reshape(self.parameters.window_size, self.parameters.embedding_size)
+        dcorrect_input = c_dcost_lt.sum(axis=0) - c_dcost_lt
 
-        logger.info("About to compile train function...")
-        train_function = theano.function([correct_inputs, noise_inputs, learning_rate],
-                                         [dcorrect_inputs, dnoise_inputs, total_loss, unpenalized_loss, correct_score, noise_score],
-                                         mode=self.COMPILE_MODE,
-                                         updates=updates)
-        logger.info("Done constructing function for train")
-        return train_function
+        # gradients for noise sample
+        n_dcost_dout = 1
+        n_doutput_weights = numpy.dot(noise_hidden.T, n_dcost_dout)
+        n_doutput_biases = n_dcost_dout
+        n_dcost_dhidden = numpy.dot(n_dcost_dout, self.parameters.output_weights.T)
 
-    def embeds(self, sequences):
+        n_dcost_dinput = []
+        n_dcost_dhidden_v = n_dcost_dhidden.reshape((self.parameters.hidden_size,))
+        for i, x in enumerate(noise_prehidden[0]):
+            if x < -1 or x > 1:
+                n_dcost_dinput.append(0.)
+            else:
+                n_dcost_dinput.append(n_dcost_dhidden_v[i])
+        n_dcost_dinput = numpy.asarray(n_dcost_dinput).reshape((1, self.parameters.hidden_size))
+
+        n_dhidden_weights = numpy.dot(noise_inputs.T, n_dcost_dinput)
+        n_dhidden_biases = n_dcost_dinput
+        n_dcost_lt = numpy.dot(n_dcost_dinput, self.parameters.hidden_weights.T)
+
+        n_dcost_lt = n_dcost_lt.reshape(self.parameters.window_size, self.parameters.embedding_size)
+        dnoise_input = n_dcost_lt.sum(axis=0) - n_dcost_lt
+
+        dhidden_weights = c_dhidden_weights + n_dhidden_weights
+        dhidden_biases = c_dhidden_biases + n_dhidden_biases
+
+        doutput_weights = c_doutput_weights + n_doutput_weights
+        doutput_biases = c_doutput_biases + n_doutput_biases
+
+        # update parameters
+        self.parameters.hidden_weights -= learning_rate * dhidden_weights
+        self.parameters.hidden_biases -= learning_rate * dhidden_biases
+        self.parameters.output_weights -= learning_rate * doutput_weights
+        self.parameters.output_biases -= learning_rate * doutput_biases
+
+        return dcorrect_input, dnoise_input, loss, correct_score, noise_score
+
+    def embed(self, sequence):
         """
-        Embed sequences of vocabulary IDs.
-        If we are given a list of MINIBATCH lists of SEQLEN items,
-        return a matrices of shape (MINIBATCH, EMBSIZE*SEQLEN)
+        Embed one sequence of vocabulary IDs.
         """
-        embs = []
-        for sequence in sequences:
-            seq = [self.parameters.embeddings[s] for s in sequence]
-            embs.append(numpy.concatenate(seq))
-        return numpy.vstack(embs)
+        embs = numpy.concatenate([self.parameters.embeddings[s] for s in sequence]).reshape((1, self.parameters.input_size))
+        return embs
 
-    def corrupt_examples(self, correct_sequences):
+    def corrupt_examples(self, correct_sequence):
         noise_sequences = []
         weights = []
         half_window = config.WINDOW_SIZE / 2
 
-        for e in correct_sequences:
-            noise_sequence = copy.copy(e)
-            noise_sequence[half_window] = random.randint(0, self.parameters.vocab_size - 1)
-            weight = self.parameters.vocab_size
+        for i in xrange(200):
+            noise_sequence = copy.copy(correct_sequence)
+            noise_sequence[half_window] = i
+            # weight = self.parameters.vocab_size
             noise_sequences.append(noise_sequence)
-            weights.append(weight)
+            # weights.append(weight)
 
-        return noise_sequences, weights
+        return noise_sequences
 
     def train(self, correct_sequences):
         learning_rate = config.LEARNING_RATE
-        noise_sequences, weights = self.corrupt_examples(correct_sequences)
+        for correct_sequence in correct_sequences:
+            emb_correct = self.embed(correct_sequence)
+            for noise_sequence in self.corrupt_examples(correct_sequence):
+                emb_noise = self.embed(noise_sequence)
+                r = self.train_sample_pair(emb_correct, emb_noise, learning_rate)
+                (dcorrect_input, dnoise_input, loss, correct_score, noise_score) = r
 
-        r = self.train_function(self.embeds(correct_sequences), self.embeds(noise_sequences), learning_rate * weights[0])
-        (dcorrect_inputss, dnoise_inputss, total_loss, losses, correct_scores, noise_scores) = r
+                if loss == 0:
+                    continue
 
-        self.train_loss += total_loss
-        self.train_err += (correct_scores <= noise_scores).sum()
-        self.train_lossnonzero += (losses > 0).sum()
+                self.train_loss += loss
+                self.train_err += 1 if correct_score <= noise_score else 0
+                self.train_lossnonzero += 1 if loss > 0 else 0
 
-        for index in range(len(correct_sequences)):
-            correct_sequence = correct_sequences[index]
-            noise_sequence = noise_sequences[index]
+                # embedding_learning_rate = config.EMBEDDING_LEARNING_RATE * weights[0]
+                embedding_learning_rate = config.LEARNING_RATE
+                for (i, di) in zip(correct_sequence, dcorrect_input):
+                    self.parameters.embeddings[i] -= embedding_learning_rate * di
 
-            dcorrect_inputs = dcorrect_inputss[index].reshape((config.WINDOW_SIZE, config.EMBEDDING_SIZE))
-            dnoise_inputs = dnoise_inputss[index].reshape((config.WINDOW_SIZE, config.EMBEDDING_SIZE))
-
-            # embedding_learning_rate = config.EMBEDDING_LEARNING_RATE * weights[0]
-            embedding_learning_rate = config.LEARNING_RATE
-            for (i, di) in zip(correct_sequence, dcorrect_inputs):
-                self.parameters.embeddings[i] -= embedding_learning_rate * di
-            for (i, di) in zip(noise_sequence, dnoise_inputs):
-                self.parameters.embeddings[i] -= embedding_learning_rate * di
+                for (i, di) in zip(noise_sequence, dnoise_input):
+                    self.parameters.embeddings[i] -= embedding_learning_rate * di
 
     def save_word2vec_format(self, fname, binary=False):
         """

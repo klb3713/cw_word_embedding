@@ -4,10 +4,12 @@ __author__ = 'klb3713'
 
 import math
 import numpy
+import theano
 
 import config
 import vocabulary
 
+floatX = theano.config.floatX
 sqrt3 = math.sqrt(3.0)
 
 
@@ -35,15 +37,20 @@ class Parameters:
         self.input_size = self.embedding_size * self.window_size
 
         numpy.random.seed()
-
-        self.embeddings = (numpy.random.rand(self.vocab_size, self.embedding_size) - 0.5) * 2
+        # self.embeddings = numpy.asarray(
+        #     (numpy.random.rand(self.vocab_size, self.embedding_size) - 0.5) * 2 * config.INITIAL_EMBEDDING_RANGE,
+        #     dtype=floatX)
+        self.embeddings = numpy.asarray((numpy.random.rand(self.vocab_size, self.embedding_size) - 0.5) * 2,
+                                        dtype=floatX)
         if config.NORMALIZE_EMBEDDINGS:
             self.normalize(range(self.vocab_size))
 
-        self.hidden_weights = random_weights(self.input_size, self.hidden_size, scale_by=config.SCALE_INITIAL_WEIGHTS_BY)
-        self.output_weights = random_weights(self.hidden_size, self.output_size, scale_by=config.SCALE_INITIAL_WEIGHTS_BY)
-        self.hidden_biases = numpy.zeros((1, self.hidden_size))
-        self.output_biases = numpy.zeros((1, self.output_size))
+        self.hidden_weights = theano.shared(numpy.asarray(numpy.ones((self.input_size, self.hidden_size)),
+                                                          dtype=floatX))
+        self.output_weights = theano.shared(numpy.asarray(
+            random_weights(self.hidden_size, self.output_size, scale_by=config.SCALE_INITIAL_WEIGHTS_BY), dtype=floatX))
+        self.hidden_biases = theano.shared(numpy.asarray(numpy.zeros((self.hidden_size,)), dtype=floatX))
+        self.output_biases = theano.shared(numpy.asarray(numpy.zeros((self.output_size,)), dtype=floatX))
 
     def normalize(self, indices):
         """

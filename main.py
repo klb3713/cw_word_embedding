@@ -11,6 +11,7 @@ import config
 import samples
 import state
 import model
+import cProfile, pstats, StringIO
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +32,24 @@ def train(debug=False):
     while epoch <= config.EPOCH:
         logger.info("STARTING TRAINING...")
         logger.info("STARTING EPOCH #%d" % epoch)
+
+        pr = cProfile.Profile()
+        pr.enable()
+
         for batch in train_mini_batchs:
             cnt += len(batch)
             cw_model.train(batch)
 
-            if debug and cnt % (int(100000./config.MINIBATCH_SIZE) * config.MINIBATCH_SIZE) == 0:
+            if debug and cnt % (int(100./config.MINIBATCH_SIZE) * config.MINIBATCH_SIZE) == 0:
                 logger.info("FINISH TRAINED %d SAMPLES of epoch #%d." % (cnt, epoch))
+
+                pr.disable()
+                s = StringIO.StringIO()
+                sortby = 'cumulative'
+                ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+                ps.print_stats()
+                print s.getvalue()
+                exit()
 
         # save embedding for every epoch
         cw_model.save_word2vec_format(os.path.join(run_dir, config.VECTOR_FILE + '_epoch%d.bin' % epoch), binary=True)
