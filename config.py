@@ -81,7 +81,7 @@ LEARNING_RATE = 0.001
 
 # The learning rate for the embeddings
 # EMBEDDING_LEARNING_RATE = 0.00000000034
-# EMBEDDING_LEARNING_RATE = 0.01
+EMBEDDING_LEARNING_RATE = 0.01
 
 ## number of (higher-order) quadratic filters for James's neuron
 #NUMBER_OF_QUADRATIC_FILTERS=0

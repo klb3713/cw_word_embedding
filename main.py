@@ -10,7 +10,7 @@ import logging
 import config
 import samples
 import state
-import model
+import model_gpu
 # import cProfile, pstats, StringIO
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ def train(debug=False):
     logging.basicConfig(format='%(asctime)s : %(threadName)s : %(levelname)s : %(message)s', level=logging.INFO)
 
     logger.info("INITIALIZING...")
-    cw_model = model.Model()
+    cw_model = model_gpu.Model()
     cnt = 0
     epoch = 1
     train_mini_batchs = samples.TrainingMiniBatchStream()
@@ -40,7 +40,7 @@ def train(debug=False):
             cnt += len(batch)
             cw_model.train(batch)
 
-            if debug and cnt % (int(100./config.MINIBATCH_SIZE) * config.MINIBATCH_SIZE) == 0:
+            if debug and cnt % (int(100000./config.MINIBATCH_SIZE) * config.MINIBATCH_SIZE) == 0:
                 logger.info("FINISH TRAINED %d SAMPLES of epoch #%d." % (cnt, epoch))
 
                 # pr.disable()
@@ -56,7 +56,7 @@ def train(debug=False):
         cw_model.save_word2vec_format(os.path.join(run_dir, config.VECTOR_FILE + '_epoch%d.txt' % epoch), binary=False)
 
         logger.info("After #%d epoch updates, train loss: %f" % (epoch, cw_model.train_loss))
-        logger.info("After #%d epoch updates, train error: d" % (epoch, cw_model.train_err))
+        logger.info("After #%d epoch updates, train error: %d" % (epoch, cw_model.train_err))
         logger.info("After #%d epoch updates, train loss nonzero: %d" % (epoch, cw_model.train_lossnonzero))
         cw_model.reset()
         logger.info("FINISH TRAIN EPOCH #%d" % epoch)
