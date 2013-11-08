@@ -32,7 +32,7 @@ WORD_COUNT = 5
 VECTOR_FILE = "vector"
 
 # Number of examples per minibach
-MINIBATCH_SIZE = 10000
+MINIBATCH_SIZE = 100
 
 # Randomly initialize embeddings uniformly in the range [-this value, +this value]
 INITIAL_EMBEDDING_RANGE = 0.01
@@ -76,7 +76,8 @@ SCALE_INITIAL_WEIGHTS_BY = 1
 #ACTIVATION_FUNCTION="tanh"
 ACTIVATION_FUNCTION = "softsign"
 
-LEARNING_RATE = 0.000000011
+# LEARNING_RATE = 0.000000011
+LEARNING_RATE = 0.001
 
 # The learning rate for the embeddings
 # EMBEDDING_LEARNING_RATE = 0.00000000034

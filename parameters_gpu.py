@@ -13,9 +13,13 @@ floatX = theano.config.floatX
 sqrt3 = math.sqrt(3.0)
 
 
-def random_weights(nin, nout, scale_by=1./sqrt3, power=0.5):
-    return (numpy.random.rand(nin, nout) * 2.0 - 1) * scale_by * sqrt3 / pow(nin, power)
+# def random_weights(nin, nout, scale_by=1./sqrt3, power=0.5):
+#     return (numpy.random.rand(nin, nout) * 2.0 - 1) * scale_by * sqrt3 / pow(nin, power)
 
+def random_weights(n_in, n_out):
+    return numpy.asarray(numpy.random.uniform(low=-numpy.sqrt(6. / (n_in + n_out)),
+                                     high=numpy.sqrt(6. / (n_in + n_out)),
+                                     size=(n_in, n_out)), dtype=floatX)
 
 class Parameters:
     """
@@ -45,10 +49,12 @@ class Parameters:
         if config.NORMALIZE_EMBEDDINGS:
             self.normalize(range(self.vocab_size))
 
-        self.hidden_weights = theano.shared(numpy.asarray(numpy.ones((self.input_size, self.hidden_size)),
-                                                          dtype=floatX))
-        self.output_weights = theano.shared(numpy.asarray(
-            random_weights(self.hidden_size, self.output_size, scale_by=config.SCALE_INITIAL_WEIGHTS_BY), dtype=floatX))
+        self.hidden_weights = theano.shared(random_weights(self.input_size, self.hidden_size))
+        self.output_weights = theano.shared(random_weights(self.hidden_size, self.output_size))
+        # self.hidden_weights = theano.shared(numpy.asarray(numpy.ones((self.input_size, self.hidden_size)),
+        #                                                   dtype=floatX))
+        # self.output_weights = theano.shared(numpy.asarray(
+        #     random_weights(self.hidden_size, self.output_size, scale_by=config.SCALE_INITIAL_WEIGHTS_BY), dtype=floatX))
         self.hidden_biases = theano.shared(numpy.asarray(numpy.zeros((self.hidden_size,)), dtype=floatX))
         self.output_biases = theano.shared(numpy.asarray(numpy.zeros((self.output_size,)), dtype=floatX))
 
